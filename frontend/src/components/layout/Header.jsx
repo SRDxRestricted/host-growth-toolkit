@@ -79,7 +79,7 @@ function Header() {
 
               <div className="whatsapp-code-block">
                 <span className="whatsapp-code-label">Send this exact message:</span>
-                <code className="whatsapp-code">join folks-must</code>
+                <code className="whatsapp-code">join shape-pale</code>
               </div>
 
               <p className="whatsapp-popover-hint">

@@ -150,6 +150,7 @@ export async function getEarnings() {
 
 // ─── Pricing ────────────────────────────────────────────────────
 const PRICING_API_URL = `${API_BASE}/api/pricing/recommend`;
+const COMPETITORS_API_URL = `${API_BASE}/api/pricing/competitors`;
 const PRICING_RETRY_ATTEMPTS = 3;
 const PRICING_RETRY_DELAY_MS = 300;
 const CALENDAR_REQUEST_CONCURRENCY = 5;
@@ -300,6 +301,21 @@ export async function fetchPricingRecommendation(propertyId, date) {
     console.error("FastAPI backend failed", err);
     throw err;
   }
+}
+
+export async function fetchCompetitorPrices(propertyId) {
+  const res = await fetch(COMPETITORS_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ property_id: propertyId, limit: 4 }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || 'Unable to load comparable listings.');
+  }
+
+  return res.json();
 }
 
 const calendarCache = new Map();

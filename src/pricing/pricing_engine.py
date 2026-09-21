@@ -145,6 +145,7 @@ class PricingRecommendation:
         }
         if self.comparables:
             d["comparables"] = self.comparables
+            d["competitors"] = self.comparables.get("competitors", [])
         return d
 
     def __str__(self) -> str:

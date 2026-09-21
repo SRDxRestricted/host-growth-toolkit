@@ -382,6 +382,132 @@
   color: var(--white);
 }
 
+.competitors-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.competitors-action-row h4, .competitor-card h4 {
+  margin: 0;
+  color: var(--white);
+  font-size: var(--text-base);
+}
+
+.competitors-action-row p, .competitor-results-note {
+  margin: var(--sp-1) 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--text-sm);
+}
+
+.competitors-button {
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+}
+
+.competitors-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.competitors-error {
+  margin: var(--sp-4) 0 0;
+  color: #fecaca;
+  font-size: var(--text-sm);
+}
+
+.competitor-results {
+  margin-top: var(--sp-5);
+}
+
+.competitor-results-note {
+  margin-bottom: var(--sp-4);
+}
+
+.competitor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-3);
+}
+
+.competitor-card {
+  padding: var(--sp-4);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+}
+
+.competitor-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.competitor-location, .competitor-details span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.competitor-location {
+  margin-top: var(--sp-1);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--text-xs);
+}
+
+.competitor-price {
+  color: var(--white);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.competitor-price small {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
+.competitor-type {
+  margin: var(--sp-3) 0;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: var(--text-sm);
+}
+
+.competitor-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-2);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: var(--text-xs);
+}
+
+.competitor-details svg { color: var(--accent-300); }
+
+.competitor-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+  margin-top: var(--sp-4);
+}
+
+.competitor-amenities span {
+  padding: 3px var(--sp-2);
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 620px) {
+  .competitors-action-row, .competitor-card-header { align-items: flex-start; flex-direction: column; }
+  .competitor-grid { grid-template-columns: 1fr; }
+}
+
 /* Pricing Controls */
 .apply-btn {
   background-color: var(--accent-500);

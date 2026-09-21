@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { fetchPricingRecommendation, fetchPricingCalendar, getProperties } from '../api/pricing';
+import { fetchPricingRecommendation, fetchPricingCalendar, fetchCompetitorPrices, getProperties } from '../api/pricing';
 import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
 import PricingHero from '../components/pricing/PricingHero';
 import PricingFactors from '../components/pricing/PricingFactors';
@@ -20,6 +20,9 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [propsLoading, setPropsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [competitors, setCompetitors] = useState(null);
+  const [competitorsLoading, setCompetitorsLoading] = useState(false);
+  const [competitorsError, setCompetitorsError] = useState(null);
 
   useEffect(() => {
     async function loadProperties() {
@@ -63,6 +66,13 @@ export default function PricingPage() {
   }, [selectedProperty, selectedDate]);
 
   useEffect(() => {
+    // Comparables are intentionally loaded on demand, so changing a property
+    // never leaves another listing's competitors on screen.
+    setCompetitors(null);
+    setCompetitorsError(null);
+  }, [selectedProperty]);
+
+  useEffect(() => {
     async function loadCalendar() {
       if (!selectedProperty) return;
       try {
@@ -77,6 +87,20 @@ export default function PricingPage() {
 
   const handleApplyPrice = (price) => {
     console.log(`Applied price £${price} for ${selectedDate}`);
+  };
+
+  const handleLoadCompetitors = async () => {
+    if (!selectedProperty || competitorsLoading) return;
+    setCompetitorsLoading(true);
+    setCompetitorsError(null);
+    try {
+      setCompetitors(await fetchCompetitorPrices(selectedProperty));
+    } catch (err) {
+      console.error('Failed to load competitor prices', err);
+      setCompetitorsError('Unable to load competitor prices. Please try again.');
+    } finally {
+      setCompetitorsLoading(false);
+    }
   };
 
   const property = properties.find(p => p.id === selectedProperty) || null;
@@ -114,7 +138,14 @@ export default function PricingPage() {
         <div className="pricing-main-column">
           <PricingHero recommendation={recommendation} property={property} loading={loading} />
           <PricingFactors factors={recommendation?.factors} loading={loading} />
-          <ComparableListings comparables={recommendation?.comparables} loading={loading} />
+          <ComparableListings
+            comparables={recommendation?.comparables}
+            competitors={competitors}
+            competitorsLoading={competitorsLoading}
+            competitorsError={competitorsError}
+            onLoadCompetitors={handleLoadCompetitors}
+            loading={loading}
+          />
         </div>
         
         <div className="pricing-side-column">

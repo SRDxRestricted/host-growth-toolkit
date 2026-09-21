@@ -118,10 +118,10 @@ async def whatsapp_webhook(
         logger.warning(f"[STAGE: AUTH] Rejected unknown phone number: {From} ({normalized_phone})")
         resp = MessagingResponse()
         resp.message(
-            f"👋 Welcome to Wayzyy!\n\n"
+            f"👋 Welcome to host It!\n\n"
             f"We couldn't find an account registered with this phone number ({normalized_phone or From}).\n\n"
             "To list your property and get smart pricing recommendations, please sign up on our website using this phone number:\n"
-            "👉 https://wayzyy.com/signup"
+            "👉 https://host-growth-toolkit-phi.vercel.app/signup"
         )
         return Response(content=str(resp), media_type="application/xml")
 
@@ -160,7 +160,7 @@ async def whatsapp_webhook(
             resp = MessagingResponse()
             resp.message(
                 "⚠️ I received your photo, but couldn't download it to your listing. "
-                "Please try again in a moment. If it keeps happening, contact Wayzyy support."
+                "Please try again in a moment. If it keeps happening, contact host It support."
             )
             return Response(content=str(resp), media_type="application/xml")
 

@@ -95,7 +95,7 @@ class WhatsAppActionHandler:
             session_manager.reset_session(phone, user)
             return (
                 f"Hi {session.user_name}! Your conversation has been reset.\n\n"
-                "I am your Wayzyy listing assistant. Whenever you're ready to list a property, just send *LIST* or *START*!"
+                "I am your host It listing assistant. Whenever you're ready to list a property, just send *LIST* or *START*!"
             )
 
         if lower in ["cancel", "stop", "abort"] and session.status != "IDLE":
@@ -127,7 +127,7 @@ class WhatsAppActionHandler:
             session.current_step = FLOW_STEPS[0]
             session_manager.save_session(session)
             return (
-                f"Welcome {session.user_name}! Let's create your property listing on Wayzyy.\n\n"
+                f"Welcome {session.user_name}! Let's create your property listing on host It.\n\n"
                 "I will ask you a few quick questions to recommend an optimal dynamic price and craft your listing.\n\n"
                 + self._get_question_for_step(FLOW_STEPS[0])
             )
@@ -135,7 +135,7 @@ class WhatsAppActionHandler:
         return (
             f"Hi {session.user_name}! WhatsApp currently supports property listing only.\n\n"
             "To list a new property, reply with *LIST* or *START*.\n"
-            "For bookings and calendar management, please visit your Wayzyy web dashboard."
+            "For bookings and calendar management, please visit your host It web dashboard."
         )
 
     # -----------------------------------------------------------------------
@@ -184,8 +184,8 @@ class WhatsAppActionHandler:
         logger.info(f"[STAGE: ACTION] Rejected unsupported request of type: {unsupported_type}")
         return (
             "⚠️ *WhatsApp currently supports property listing only.*\n\n"
-            "Guest bookings, calendar pricing, and reservation management are available on your Wayzyy dashboard at:\n"
-            "👉 https://wayzyy.com\n\n"
+            "Guest bookings, calendar pricing, and reservation management are available on your host It dashboard at:\n"
+            "👉 https://host-growth-toolkit-phi.vercel.app/\n\n"
             "If you would like to list a property here, simply reply *LIST*."
         )
 
@@ -393,7 +393,7 @@ class WhatsAppActionHandler:
             f"📊 *Estimated Price Range:* £{price_range[0]:.2f} - £{price_range[1]:.2f}\n"
             f"📈 *Current Market Demand:* {demand}\n\n"
             f"────────────────────\n"
-            f"Would you like to publish this listing to your Wayzyy account?\n\n"
+            f"Would you like to publish this listing to your host It account?\n\n"
             f"👉 Reply *YES* to publish\n"
             f"👉 Reply *CANCEL* to discard"
         )
@@ -421,8 +421,8 @@ class WhatsAppActionHandler:
                 return (
                     f"🎉 *Congratulations!*\n\n"
                     f"Your listing *'{title}'* has been successfully created (ID: {prop_id}) and linked to your account ({user_email}).\n\n"
-                    "You can now view, manage, and edit this listing on your Wayzyy web dashboard:\n"
-                    "👉 https://wayzyy.com/dashboard\n\n"
+                    "You can now view, manage, and edit this listing on your host It web dashboard:\n"
+                    "👉 https://host-growth-toolkit-phi.vercel.app/dashboard\n\n"
                     "Whenever you want to list another property, just message me here!"
                 )
             except Exception as e:

@@ -101,7 +101,7 @@ def test_webhook_unknown_phone_response(client):
     assert resp.status_code == 200
     assert "application/xml" in resp.headers["content-type"]
     assert "sign up on our website" in resp.text
-    assert "https://wayzyy.com/signup" in resp.text
+    assert "https://host-growth-toolkit-phi.vercel.app/signup" in resp.text
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +115,7 @@ def test_webhook_rejects_booking_requests(client):
     )
     assert resp.status_code == 200
     assert "WhatsApp currently supports property listing only" in resp.text
-    assert "https://wayzyy.com" in resp.text
+    assert "https://host-growth-toolkit-phi.vercel.app" in resp.text
 
 
 def test_webhook_rejects_standalone_pricing(client):

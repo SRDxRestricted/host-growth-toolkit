@@ -33,7 +33,7 @@ const Landing = () => {
       {/* Navigation */}
       <nav className="landing-nav">
         <div className="nav-container">
-          <Link to="/" className="nav-logo">host It</Link>
+          <Link to="/" className="nav-logo">host It.</Link>
           <div className="nav-links">
             <a href="#features">Features</a>
             <a href="#pricing">Pricing</a>
@@ -82,7 +82,6 @@ const Landing = () => {
               </div>
               <div className="feature-title-wrapper">
                 <h3 className="feature-title">AI Listing Generator</h3>
-                <span className="badge-coming-soon">Coming soon</span>
               </div>
               <p className="feature-desc">
                 Generate optimised titles and descriptions that convert.
@@ -96,7 +95,6 @@ const Landing = () => {
               </div>
               <div className="feature-title-wrapper">
                 <h3 className="feature-title">WhatsApp Booking Assistant</h3>
-                <span className="badge-coming-soon">Coming soon</span>
               </div>
               <p className="feature-desc">
                 Let guests book and ask questions directly through WhatsApp.
@@ -139,7 +137,7 @@ const Landing = () => {
       {/* Footer */}
       <footer className="landing-footer">
         <div className="footer-container">
-          <p className="footer-copy">© 2026 host It</p>
+          <p className="footer-copy">© 2026 host It.</p>
           <div className="footer-links">
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>

@@ -429,6 +429,11 @@ class CalendarRequest(BaseModel):
         return value
 
 
+class CompetitorsRequest(BaseModel):
+    property_id: str
+    limit: Optional[int] = 4
+
+
 class SignupRequest(BaseModel):
     first_name: str
     last_name: str
@@ -651,6 +656,36 @@ def recommend_calendar(req: CalendarRequest):
         return {"property_id": prop_id, "calendar": calendar_data}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+
+
+@app.post("/api/pricing/competitors")
+def get_property_competitors(req: CompetitorsRequest):
+    from pricing.comparables import get_comparables
+
+    prop_id = req.property_id
+    doc = listing_by_id(prop_id)
+    if doc is not None:
+        prop_features = dict(doc)
+        prop_features.pop("_id", None)
+    elif prop_id in DEMO_PROPERTIES:
+        prop_features = DEMO_PROPERTIES[prop_id]
+    else:
+        raise HTTPException(status_code=404, detail=f"Property {prop_id} not found.")
+
+    try:
+        limit = max(3, min(req.limit or 4, 5))
+        comps = get_comparables(prop_features, target_id=prop_id, limit=limit)
+        return {
+            "property_id": prop_id,
+            "competitors": comps.get("competitors", []),
+            "comparable_count": comps.get("comparable_count", 0),
+            "median_price": comps.get("median_price"),
+            "p25_price": comps.get("p25_price"),
+            "p75_price": comps.get("p75_price"),
+            "message": comps.get("message", ""),
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
 

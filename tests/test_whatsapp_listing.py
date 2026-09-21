@@ -20,6 +20,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, Any
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -261,6 +262,52 @@ def test_calculate_property_price():
     assert rec.recommended_price > 0
     assert rec.price_range[0] < rec.price_range[1]
     assert rec.demand_level in ["low", "medium", "high"]
+
+
+def test_whatsapp_returns_tomorrow_prices_for_each_host_property(monkeypatch):
+    """Tomorrow-price command must provide a separate recommendation per listing."""
+    user = {"email": "host@example.com", "first_name": "Host"}
+    properties = [
+        {"id": "prop_a", "name": "Camden Flat"},
+        {"id": "prop_b", "name": "Soho Studio"},
+    ]
+    monkeypatch.setattr("whatsapp_actions.get_host_properties", lambda _user: properties)
+    monkeypatch.setattr(
+        "whatsapp_actions.calculate_property_price",
+        lambda prop, _date: SimpleNamespace(
+            recommended_price=150 if prop["id"] == "prop_a" else 210,
+            price_range=(130, 175),
+            demand_level="medium",
+        ),
+    )
+
+    reply = action_handler.process_message(user, "+447123456789", "prices for tomorrow")
+
+    assert "Tomorrow's recommended prices" in reply
+    assert "Camden Flat" in reply
+    assert "Soho Studio" in reply
+    assert "£150" in reply
+    assert "£210" in reply
+
+
+def test_whatsapp_returns_three_competitor_prices_per_property(monkeypatch):
+    """Competitor command must format local matches independently per listing."""
+    user = {"email": "host@example.com", "first_name": "Host"}
+    properties = [{"id": "prop_a", "name": "Camden Flat"}]
+    competitors = [
+        {"price": 125, "location": "Camden", "property_type": "Apartment", "bedrooms": 1, "bathrooms": 1},
+        {"price": 140, "location": "Camden", "property_type": "Apartment", "bedrooms": 1, "bathrooms": 1},
+        {"price": 155, "location": "Camden", "property_type": "Apartment", "bedrooms": 2, "bathrooms": 1},
+    ]
+    monkeypatch.setattr("whatsapp_actions.get_host_properties", lambda _user: properties)
+    monkeypatch.setattr("whatsapp_actions.get_property_competitors", lambda _prop, limit: competitors[:limit])
+
+    reply = action_handler.process_message(user, "+447123456789", "show competitor prices")
+
+    assert "Local competitor prices" in reply
+    assert "Camden Flat" in reply
+    assert reply.count("£") == 3
+    assert "Camden" in reply
 
 
 # ---------------------------------------------------------------------------

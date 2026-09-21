@@ -1,20 +1,231 @@
-.calendar-sync-section { margin-top: var(--sp-6); }
-.calendar-sync-heading { display: flex; gap: var(--sp-3); align-items: flex-start; margin-bottom: var(--sp-5); }
-.calendar-sync-heading h3 { margin-bottom: var(--sp-1); }
-.calendar-sync-heading p, .calendar-export-card p { margin: 0; color: rgba(255,255,255,.65); font-size: var(--text-sm); line-height: 1.5; }
-.calendar-sync-icon { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; color: #f6b18a; background: rgba(232,100,32,.16); border: 1px solid rgba(232,100,32,.35); border-radius: var(--radius-md); }
-.calendar-export-card { padding: var(--sp-4); margin-bottom: var(--sp-5); background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.1); border-radius: var(--radius-md); }
-.calendar-export-card label, .calendar-import-form label { display: block; margin-bottom: var(--sp-2); color: rgba(255,255,255,.9); font-size: var(--text-sm); font-weight: 600; }
-.calendar-export-url, .calendar-import-row { display: flex; align-items: stretch; margin-top: var(--sp-3); }
-.calendar-export-url input, .calendar-import-row input { min-width: 0; flex: 1; padding: var(--sp-3); color: rgba(255,255,255,.82); background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.15); border-radius: var(--radius-md) 0 0 var(--radius-md); outline: none; }
-.calendar-export-url button, .calendar-sync-button { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); padding: 0 var(--sp-4); color: var(--white); font-weight: 600; border: 0; cursor: pointer; background: #e86420; border-radius: 0 var(--radius-md) var(--radius-md) 0; }
-.calendar-export-url button:hover, .calendar-sync-button:hover:not(:disabled) { background: #f07836; }
-.calendar-import-row > span { display: grid; place-items: center; width: 38px; color: rgba(255,255,255,.55); background: rgba(0,0,0,.28); border: 1px solid rgba(255,255,255,.15); border-right: 0; border-radius: var(--radius-md) 0 0 var(--radius-md); }
-.calendar-import-row input { border-radius: 0; }
-.calendar-sync-button:disabled { cursor: wait; opacity: .65; }
-.calendar-sync-message { display: flex; align-items: center; gap: var(--sp-2); margin: var(--sp-3) 0 0; font-size: var(--text-sm); }
-.calendar-sync-message.success { color: #6ee7b7; }.calendar-sync-message.error { color: #fca5a5; }
-.calendar-sync-status { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid rgba(255,255,255,.1); }.calendar-sync-status h4 { margin: 0 0 var(--sp-3); font-size: var(--text-sm); }
-.calendar-block-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px,1fr)); gap: var(--sp-2); }.calendar-block { padding: var(--sp-3); border-left: 3px solid #e86420; background: rgba(232,100,32,.1); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }.calendar-block span, .calendar-block small { display:block; }.calendar-block span { font-size: var(--text-sm); font-weight: 600; }.calendar-block small, .calendar-sync-muted { color: rgba(255,255,255,.6); font-size: var(--text-xs); margin-top: 3px; }
-.spin { animation: calendar-sync-spin 1s linear infinite; } @keyframes calendar-sync-spin { to { transform: rotate(360deg); } }
-@media (max-width: 600px) { .calendar-import-row { flex-wrap: wrap; }.calendar-import-row input { min-width: calc(100% - 38px); }.calendar-sync-button { width: 100%; min-height: 42px; margin-top: var(--sp-2); border-radius: var(--radius-md); } }
+/* ==========================================================================
+   Calendar Sync Section — Dark Mode Glassmorphism
+   ========================================================================== */
+
+.calendar-sync-section {
+  margin-top: 2rem;
+  background: rgba(17, 24, 39, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.calendar-sync-heading {
+  display: flex;
+  gap: var(--sp-3, 0.75rem);
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.calendar-sync-heading h3 {
+  margin: 0 0 2px 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.calendar-sync-heading p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.calendar-sync-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  color: #f6b18a;
+  background: rgba(232, 100, 32, 0.18);
+  border: 1px solid rgba(232, 100, 32, 0.35);
+  border-radius: var(--radius-md, 10px);
+}
+
+.calendar-sync-grid-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.calendar-export-card,
+.calendar-import-card {
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-lg, 12px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.calendar-export-card label,
+.calendar-import-form label {
+  display: block;
+  margin-bottom: 4px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.calendar-export-card p,
+.calendar-import-card p {
+  margin: 0 0 10px 0;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.calendar-export-url,
+.calendar-import-row {
+  display: flex;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.calendar-export-url input,
+.calendar-import-row input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.65rem 0.85rem;
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px);
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.calendar-export-url input:focus,
+.calendar-import-row input:focus {
+  border-color: #e86420;
+}
+
+.calendar-export-url button,
+.calendar-sync-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1.15rem;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  background: #e86420;
+  border-radius: 0 var(--radius-md, 8px) var(--radius-md, 8px) 0;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  white-space: nowrap;
+}
+
+.calendar-export-url button:hover,
+.calendar-sync-button:hover:not(:disabled) {
+  background: #f07836;
+}
+
+.calendar-import-row > span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-right: 0;
+  border-radius: var(--radius-md, 8px) 0 0 var(--radius-md, 8px);
+}
+
+.calendar-import-row input {
+  border-radius: 0;
+}
+
+.calendar-sync-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.calendar-sync-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
+.calendar-sync-status {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.calendar-sync-status h4 {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.calendar-block-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.calendar-block {
+  padding: 0.75rem;
+  border-left: 3px solid #e86420;
+  background: rgba(232, 100, 32, 0.1);
+  border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+}
+
+.calendar-block span {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.calendar-block small,
+.calendar-sync-muted {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  margin-top: 3px;
+}
+
+.spin {
+  animation: calendar-sync-spin 1s linear infinite;
+}
+
+@keyframes calendar-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-sync-grid-row {
+    grid-template-columns: 1fr;
+  }
+  .calendar-import-row {
+    flex-wrap: wrap;
+  }
+  .calendar-import-row input {
+    min-width: calc(100% - 40px);
+  }
+  .calendar-sync-button {
+    width: 100%;
+    min-height: 40px;
+    margin-top: 0.5rem;
+    border-radius: var(--radius-md, 8px);
+  }
+}

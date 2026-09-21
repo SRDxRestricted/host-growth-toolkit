@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { fetchPricingCalendar, getBookings, getProperties } from '../api/pricing';
 import NoPropertiesEmptyState from '../components/dashboard/NoPropertiesEmptyState';
+import ErrorBoundary from '../components/common/ErrorBoundary';
+import CalendarSyncSection from '../components/calendar/CalendarSyncSection';
 import './CalendarPage.css';
 
 export default function CalendarPage() {
@@ -214,7 +216,7 @@ export default function CalendarPage() {
           setActiveBookingPopover(isOpen ? null : { ...booking, date });
         }}
       >
-        <span className="badge-text">Reserved · {booking.guestName.split(' ')[0]}</span>
+        <span className="badge-text">{booking.source === 'ical' ? 'External' : 'Reserved'} · {(booking.guestName || booking.summary || 'Hold').split(' ')[0]}</span>
       </button>
     );
   };
@@ -236,7 +238,7 @@ export default function CalendarPage() {
   ));
   const bookedNights = calendarDays.filter(day => day.dayBookings.length > 0).length;
   const blockedNights = calendarDays.filter(day => day.status === 'blocked').length;
-  const bookedRevenue = monthBookings.reduce((total, booking) => total + booking.totalPrice, 0);
+  const bookedRevenue = monthBookings.reduce((total, booking) => total + (Number(booking.totalPrice) || 0), 0);
   const blockedRevenueImpact = calendarDays
     .filter(day => day.status === 'blocked')
     .reduce((total, day) => total + Number(day.price || 0), 0);
@@ -252,7 +254,8 @@ export default function CalendarPage() {
   const hasNoProperties = !propertiesLoading && properties.length === 0;
 
   return (
-    <div className="calendar-page animate-fade-in-up">
+    <ErrorBoundary fallbackTitle="Availability calendar is temporarily unavailable">
+      <div className="calendar-page animate-fade-in-up">
       {hasNoProperties ? <NoPropertiesEmptyState /> : <>
       {/* ─── Conflict Alert Banner ────────────────────────────────── */}
       {activeConflict && (
@@ -265,7 +268,7 @@ export default function CalendarPage() {
               <div className="conflict-title">⚠️ Double-Booking Conflict Detected</div>
               <div className="conflict-subtitle">
                 Overlapping dates on <strong>Sep 21–23, 2026</strong> between 
-                <strong>{activeConflict.b1.guestName}</strong> and <strong>{activeConflict.b2.guestName}</strong>.
+                <strong>{activeConflict.b1?.guestName || activeConflict.b1?.summary || 'Reservation 1'}</strong> and <strong>{activeConflict.b2?.guestName || activeConflict.b2?.summary || 'Reservation 2'}</strong>.
               </div>
             </div>
           </div>
@@ -390,12 +393,12 @@ export default function CalendarPage() {
                       </div>
                       {day.checkingOutBookings.map(booking => (
                         <p key={`checkout-${booking.id}`}>
-                          {booking.guestName} checks out at <strong>11:00 AM</strong>.
+                          {booking.guestName || booking.summary || 'Guest'} checks out at <strong>11:00 AM</strong>.
                         </p>
                       ))}
                       {day.checkingInBookings.map(booking => (
                         <p key={`checkin-${booking.id}`}>
-                          {booking.guestName} checks in at <strong>2:00 PM</strong>.
+                          {booking.guestName || booking.summary || 'Guest'} checks in at <strong>2:00 PM</strong>.
                         </p>
                       ))}
                       <span className="turnover-popover-note">Allow time for cleaning and inspection.</span>
@@ -428,10 +431,10 @@ export default function CalendarPage() {
                           <X size={13} />
                         </button>
                       </div>
-                      <strong className="booking-popover-guest">{activeBookingPopover.guestName}</strong>
+                      <strong className="booking-popover-guest">{activeBookingPopover.guestName || activeBookingPopover.summary || 'External Calendar Hold'}</strong>
                       <div className="booking-popover-detail">
                         <span>Payout total</span>
-                        <strong>£{activeBookingPopover.totalPrice}</strong>
+                        <strong>£{Number(activeBookingPopover.totalPrice || 0)}</strong>
                       </div>
                       <div className="booking-popover-times">
                         <span>Check-in: {activeBookingPopover.checkIn} · 2:00 PM</span>
@@ -468,6 +471,16 @@ export default function CalendarPage() {
               {blockedNights > 0 && <em>· {blockedNights} manual {blockedNights === 1 ? 'hold' : 'holds'}</em>}
             </div>
           </footer>
+
+          {/* ─── iCal Channel Sync Section ─────────────────────────── */}
+          <CalendarSyncSection
+            propertyId={selectedPropertyId}
+            onSyncSuccess={() => {
+              getBookings(selectedPropertyId)
+                .then(setBookingsList)
+                .catch((err) => console.error('Failed to reload bookings after sync', err));
+            }}
+          />
         </>
       )}
 
@@ -507,13 +520,13 @@ export default function CalendarPage() {
                   selectedDayDetail.dayBookings.map(b => (
                     <div key={b.id} className="res-card">
                       <div className="res-top">
-                        <span className="res-guest">{b.guestName}</span>
+                        <span className="res-guest">{b.guestName || b.summary || 'External Hold'}</span>
                         <span className="reservation-label">Reserved</span>
                       </div>
                       <div className="res-details">
                         <span>Check-In: {b.checkIn}</span>
                         <span>Check-Out: {b.checkOut}</span>
-                        <span>Total: £{b.totalPrice} ({b.nights} nights)</span>
+                        <span>Total: £{Number(b.totalPrice || 0)} ({b.nights || 0} nights)</span>
                       </div>
                     </div>
                   ))
@@ -524,6 +537,7 @@ export default function CalendarPage() {
         </div>
       )}
       </>}
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

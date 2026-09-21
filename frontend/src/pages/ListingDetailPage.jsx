@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getListing } from '../api/listings';
-import CalendarSyncSection from '../components/calendar/CalendarSyncSection';
 import {
   ArrowLeft, ChevronLeft, ChevronRight, Check, ShieldCheck,
   MapPin, Users, BedDouble, Bath, Home,
@@ -188,7 +187,6 @@ export default function ListingDetailPage() {
             </div>
           )}
 
-          <CalendarSyncSection propertyId={listing.id} />
         </div>
 
         {/* Right column */}

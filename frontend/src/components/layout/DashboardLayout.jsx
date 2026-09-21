@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import ErrorBoundary from '../common/ErrorBoundary'
 import './Layout.css'
 
 const backgroundMap = {
@@ -21,7 +22,9 @@ function DashboardLayout() {
       <div className="dashboard-main">
         <Header />
         <main className="dashboard-content">
-          <Outlet />
+          <ErrorBoundary fallbackTitle="This page encountered an issue">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

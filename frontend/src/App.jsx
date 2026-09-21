@@ -10,6 +10,7 @@ import NewListingPage from './pages/NewListingPage'
 import ListingDetailPage from './pages/ListingDetailPage'
 import BookingsPage from './pages/BookingsPage'
 import CalendarPage from './pages/CalendarPage'
+import PortfolioMapPage from './pages/PortfolioMapPage'
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
         <Route path="listings/new" element={<NewListingPage />} />
         <Route path="listings/:listingId" element={<ListingDetailPage />} />
         <Route path="bookings" element={<BookingsPage />} />
+        <Route path="portfolio-map" element={<PortfolioMapPage />} />
       </Route>
     </Routes>
   )

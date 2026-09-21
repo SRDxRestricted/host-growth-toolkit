@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import re
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -34,6 +35,8 @@ from whatsapp_service import (
     calculate_property_price,
     create_and_save_listing,
     generate_listing_copy,
+    get_host_properties,
+    get_property_competitors,
     ValidationError,
     PricingCalculationError,
     ListingSaveError,
@@ -95,15 +98,26 @@ class WhatsAppActionHandler:
             session_manager.reset_session(phone, user)
             return (
                 f"Hi {session.user_name}! Your conversation has been reset.\n\n"
-                "I am your host It listing assistant. Whenever you're ready to list a property, just send *LIST* or *START*!"
+                "Send *LIST* or *START* to create a property listing.\n"
+                "You can also ask for *prices for tomorrow* or *competitor prices*."
             )
 
         if lower in ["cancel", "stop", "abort"] and session.status != "IDLE":
             session_manager.reset_session(phone, user)
             return (
                 "Listing process cancelled. No changes were made.\n\n"
-                "Send *LIST* anytime you'd like to start again!"
+                "Send *LIST* to start again, or ask for *prices for tomorrow* or *competitor prices*."
             )
+
+        # Hosts can request operational pricing information without entering
+        # the listing-creation flow. These commands are handled before LLM
+        # parsing so short WhatsApp commands stay predictable and fast.
+        if session.status == "IDLE" and self._is_tomorrow_price_request(lower):
+            return self._reply_tomorrow_prices(user)
+        if session.status == "IDLE" and self._is_competitor_price_request(lower):
+            return self._reply_competitor_prices(user)
+        if session.status == "IDLE" and self._is_unsupported_guest_request(lower):
+            return self._reply_unsupported("guest_request")
 
         # 2. Check for Unsupported Requests (Bookings, Standalone Pricing, Dashboard)
         # Fast check or LLM extraction
@@ -129,6 +143,7 @@ class WhatsAppActionHandler:
             return (
                 f"Welcome {session.user_name}! Let's create your property listing on host It.\n\n"
                 "I will ask you a few quick questions to recommend an optimal dynamic price and craft your listing.\n\n"
+                "Need an existing listing update instead? Ask for *prices for tomorrow* or *competitor prices*.\n\n"
                 + self._get_question_for_step(FLOW_STEPS[0])
             )
 
@@ -137,6 +152,79 @@ class WhatsAppActionHandler:
             "To list a new property, reply with *LIST* or *START*.\n"
             "For bookings and calendar management, please visit your host It web dashboard."
         )
+
+    @staticmethod
+    def _is_tomorrow_price_request(text: str) -> bool:
+        return "tomorrow" in text and any(word in text for word in ("price", "pricing", "rate", "rates"))
+
+    @staticmethod
+    def _is_competitor_price_request(text: str) -> bool:
+        return any(phrase in text for phrase in (
+            "competitor", "competitors", "nearby price", "local price", "surrounding area",
+        ))
+
+    @staticmethod
+    def _is_unsupported_guest_request(text: str) -> bool:
+        return (
+            any(phrase in text for phrase in (
+                "how much is it to stay", "cost per night to book", "pricing for stay",
+            ))
+            or any(word in text for word in ("reservation", "check in", "check-in", "check out", "check-out"))
+        )
+
+    @staticmethod
+    def _property_name(property_features: Dict[str, Any]) -> str:
+        return str(
+            property_features.get("name")
+            or property_features.get("listing_title")
+            or f"{property_features.get('property_type', 'Property')} in {property_features.get('host_neighbourhood', 'London')}"
+        )
+
+    def _reply_tomorrow_prices(self, user: Dict[str, Any]) -> str:
+        properties = get_host_properties(user)
+        if not properties:
+            return "I couldn't find a property linked to your account yet. Send *LIST* to create one first."
+
+        tomorrow = (datetime.now(timezone.utc).date() + timedelta(days=1))
+        lines = [f"📅 *Tomorrow's recommended prices* ({tomorrow.strftime('%a, %d %b')})"]
+        for property_features in properties:
+            try:
+                recommendation = calculate_property_price(property_features, tomorrow.isoformat())
+                low, high = recommendation.price_range
+                lines.extend([
+                    "",
+                    f"🏠 *{self._property_name(property_features)}*",
+                    f"💷 £{recommendation.recommended_price:.0f} / night (range £{low:.0f}–£{high:.0f})",
+                    f"📈 {recommendation.demand_level.title()} demand",
+                ])
+            except PricingCalculationError:
+                logger.exception("[STAGE: PRICING] Tomorrow price failed for %s", property_features.get("id"))
+                lines.extend(["", f"🏠 *{self._property_name(property_features)}*", "⚠️ Price is temporarily unavailable."])
+        return "\n".join(lines)
+
+    def _reply_competitor_prices(self, user: Dict[str, Any]) -> str:
+        properties = get_host_properties(user)
+        if not properties:
+            return "I couldn't find a property linked to your account yet. Send *LIST* to create one first."
+
+        lines = ["📍 *Local competitor prices*"]
+        for property_features in properties:
+            competitors = get_property_competitors(property_features, limit=3)
+            lines.extend(["", f"🏠 *{self._property_name(property_features)}*"])
+            if not competitors:
+                lines.append("No comparable local listings are available right now.")
+                continue
+            for competitor in competitors:
+                details = (
+                    f"{competitor.get('property_type', 'Property')} · "
+                    f"{competitor.get('bedrooms', 1):g} bed · "
+                    f"{competitor.get('bathrooms', 1):g} bath"
+                )
+                lines.append(
+                    f"• £{float(competitor['price']):.0f}/night — *{competitor.get('location', 'Nearby')}*\n"
+                    f"  {details}"
+                )
+        return "\n".join(lines)
 
     # -----------------------------------------------------------------------
     # Step Question Prompts

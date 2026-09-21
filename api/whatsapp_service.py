@@ -35,6 +35,7 @@ for _p in (SRC_DIR, _THIS_DIR):
         sys.path.insert(0, str(_p))
 
 from pricing.pricing_engine import PricingEngine, PricingRecommendation
+from pricing.comparables import get_comparables
 from listings.pipeline import generate_listing, run_pipeline, _fallback_listing, VisionFeatures
 
 
@@ -214,6 +215,41 @@ def calculate_property_price(
     except Exception as e:
         logger.exception(f"[STAGE: PRICING] Error in recommend_price: {e}")
         raise PricingCalculationError(f"Pricing calculation failed: {e}") from e
+
+
+def get_host_properties(user: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Return only properties owned by the authenticated WhatsApp host."""
+    import main as backend_main
+
+    email = str(user.get("email") or "").strip().lower()
+    property_id = user.get("property_id")
+    properties: Dict[str, Dict[str, Any]] = {}
+
+    for listing in backend_main.all_listings():
+        if str(listing.get("owner_email") or "").strip().lower() == email:
+            properties[str(listing.get("id"))] = dict(listing)
+
+    for listing in backend_main.DEMO_PROPERTIES.values():
+        if str(listing.get("owner_email") or "").strip().lower() == email:
+            properties[str(listing.get("id"))] = dict(listing)
+
+    # Older accounts can have one active property linked without an owner field.
+    if property_id and str(property_id) not in properties:
+        linked = backend_main.listing_by_id(str(property_id)) or backend_main.DEMO_PROPERTIES.get(str(property_id))
+        if linked:
+            properties[str(property_id)] = dict(linked)
+
+    return list(properties.values())
+
+
+def get_property_competitors(property_features: Dict[str, Any], limit: int = 3) -> List[Dict[str, Any]]:
+    """Reuse the pricing comparable finder for WhatsApp's compact result."""
+    result = get_comparables(
+        property_features,
+        target_id=property_features.get("id"),
+        limit=max(3, min(limit, 5)),
+    )
+    return result.get("competitors", [])[:3]
 
 
 # ---------------------------------------------------------------------------

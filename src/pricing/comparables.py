@@ -389,6 +389,8 @@ class ComparableFinder:
                 "rating": round(float(row["review_scores_rating"]), 2) if pd.notna(row.get("review_scores_rating")) else 4.8,
                 "reviews_count": int(row["number_of_reviews"]) if pd.notna(row.get("number_of_reviews")) else 0,
                 "dist_km": round(float(row.get("dist_km", 0.0)), 2),
+                "latitude": round(float(row["latitude"]), 6) if pd.notna(row.get("latitude")) else None,
+                "longitude": round(float(row["longitude"]), 6) if pd.notna(row.get("longitude")) else None,
             })
 
         return {

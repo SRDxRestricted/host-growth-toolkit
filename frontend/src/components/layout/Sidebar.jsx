@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, Home, Calendar as CalendarIcon, CalendarDays, User } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, Home, Calendar as CalendarIcon, CalendarDays, Map, User } from 'lucide-react'
 
 function Sidebar() {
   const user = JSON.parse(localStorage.getItem('wayzyy_user') || '{}');
@@ -21,6 +21,10 @@ function Sidebar() {
         <NavLink to="/dashboard/pricing" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
           <TrendingUp size={20} />
           <span>Pricing</span>
+        </NavLink>
+        <NavLink to="/dashboard/portfolio-map" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+          <Map size={20} />
+          <span>View map</span>
         </NavLink>
         <NavLink to="/dashboard/listings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
           <Home size={20} />

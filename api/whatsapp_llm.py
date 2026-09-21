@@ -40,7 +40,7 @@ from whatsapp_service import LLMParsingError
 # ---------------------------------------------------------------------------
 class LLMStructuredOutput(BaseModel):
     intent: str = Field(
-        description="Detected intent: 'create_listing', 'provide_field', 'confirm', 'cancel', 'reset', 'unsupported', or 'greeting'"
+        description="Detected intent: 'create_listing', 'tomorrow_price', 'competitor_prices', 'provide_field', 'confirm', 'cancel', 'reset', 'unsupported', or 'greeting'"
     )
     field: Optional[str] = Field(
         default=None,
@@ -78,15 +78,17 @@ ALL_REQUIRED_FIELDS = [
 LLM_PARSER_SYSTEM_PROMPT = """You are the AI parser for host It, a property-listing assistant on WhatsApp.
 Your job is to analyze the user's message in the context of creating a property listing.
 
-IMPORTANT SCOPE RESTRICTION:
-- host It WhatsApp ONLY supports creating new property listings ("create_listing").
+IMPORTANT SCOPE:
+- host It WhatsApp supports creating new property listings, tomorrow-price requests, and local competitor-price requests.
 - When a user says "list", "start", "I want to list", or wants to add/rent a property, ALWAYS set intent="create_listing".
-- Only set intent="unsupported" (with unsupported_type="booking" | "pricing_alone" | "dashboard") if the user explicitly asks for guest bookings, calendar availability, standalone pricing, or dashboard controls.
+- Set intent="tomorrow_price" for requests such as "prices for tomorrow" or "tomorrow's rate".
+- Set intent="competitor_prices" for requests to see competitor, nearby, local, or surrounding-area prices.
+- Only set intent="unsupported" (with unsupported_type="booking" | "pricing_alone" | "dashboard") for guest bookings, calendar availability, or unsupported dashboard controls.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object with these exact keys:
 {{
-  "intent": "create_listing" | "provide_field" | "confirm" | "cancel" | "reset" | "unsupported" | "greeting",
+  "intent": "create_listing" | "tomorrow_price" | "competitor_prices" | "provide_field" | "confirm" | "cancel" | "reset" | "unsupported" | "greeting",
   "field": "property_type" | "location" | "accommodates" | "bedrooms" | "bathrooms" | "amenities" | null,
   "value": <extracted value or null>,
   "missing_fields": [<list of remaining required fields>],
@@ -175,6 +177,11 @@ def parse_user_message(
         if current_expected_field == "confirmation":
             return LLMStructuredOutput(intent="confirm", field=None, value=True, missing_fields=[])
 
+    if "tomorrow" in lower and any(word in lower for word in ("price", "pricing", "rate", "rates")):
+        return LLMStructuredOutput(intent="tomorrow_price", missing_fields=[])
+    if any(phrase in lower for phrase in ("competitor", "competitors", "nearby price", "local price", "surrounding area")):
+        return LLMStructuredOutput(intent="competitor_prices", missing_fields=[])
+
     # Construct prompt
     prompt = LLM_PARSER_SYSTEM_PROMPT.format(
         current_field=current_expected_field or "None (awaiting initial intent)",
@@ -222,6 +229,10 @@ def _fallback_parser(
     remaining = [f for f in ALL_REQUIRED_FIELDS if f not in collected_fields and f != current_expected_field]
 
     # Check for unsupported intents
+    if "tomorrow" in lower and any(word in lower for word in ("price", "pricing", "rate", "rates")):
+        return LLMStructuredOutput(intent="tomorrow_price", missing_fields=[])
+    if any(phrase in lower for phrase in ("competitor", "competitors", "nearby price", "local price", "surrounding area")):
+        return LLMStructuredOutput(intent="competitor_prices", missing_fields=[])
     unsupported_booking_keywords = ["book", "stay", "reservation", "check in", "check-in", "check out", "nights", "available dates"]
     if any(kw in lower for kw in unsupported_booking_keywords):
         return LLMStructuredOutput(

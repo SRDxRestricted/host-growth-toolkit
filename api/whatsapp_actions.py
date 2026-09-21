@@ -110,13 +110,17 @@ class WhatsAppActionHandler:
             )
 
         # Hosts can request operational pricing information without entering
-        # the listing-creation flow. These commands are handled before LLM
-        # parsing so short WhatsApp commands stay predictable and fast.
-        if session.status == "IDLE" and self._is_tomorrow_price_request(lower):
+        # the listing-creation flow.  These work from ANY session state (not
+        # just IDLE) so a stale IN_PROGRESS session never blocks them.
+        if self._is_tomorrow_price_request(lower):
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
             return self._reply_tomorrow_prices(user)
-        if session.status == "IDLE" and self._is_competitor_price_request(lower):
+        if self._is_competitor_price_request(lower):
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
             return self._reply_competitor_prices(user)
-        if session.status == "IDLE" and self._is_unsupported_guest_request(lower):
+        if self._is_unsupported_guest_request(lower):
             return self._reply_unsupported("guest_request")
 
         # 2. Check for Unsupported Requests (Bookings, Standalone Pricing, Dashboard)

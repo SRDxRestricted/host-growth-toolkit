@@ -3,9 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { getListings } from '../api/listings';
 import {
   Plus, Users, BedDouble, Bath, MapPin, Home,
-  Image as ImageIcon, Loader2, Sparkles, AlertTriangle, ChevronRight
+  Image as ImageIcon, Loader2, Sparkles, AlertTriangle, ChevronRight, ExternalLink
 } from 'lucide-react';
 import './ListingsPage.css';
+
+function AirbnbMark() {
+  return <span className="platform-mark platform-mark-airbnb" aria-hidden="true"><img src="https://cdn.simpleicons.org/airbnb/FF385C" alt="" /></span>;
+}
+
+function BookingMark() {
+  return <span className="platform-mark platform-mark-booking" aria-hidden="true"><img src="https://cdn.simpleicons.org/bookingdotcom/003580" alt="" /></span>;
+}
 
 export default function ListingsPage() {
   const navigate = useNavigate();
@@ -42,6 +50,28 @@ export default function ListingsPage() {
         <div>
           <h1 className="page-title">Your Listings</h1>
           <p className="page-subtitle">Every property you create appears here, with its specs and photos</p>
+          <div className="listing-platform-links" aria-label="Publish your property on other platforms">
+            <a
+              className="listing-platform-link"
+              href="https://www.airbnb.com/host/homes"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <AirbnbMark />
+              <span>Host on Airbnb</span>
+              <ExternalLink size={14} aria-hidden="true" />
+            </a>
+            <a
+              className="listing-platform-link"
+              href="https://join.booking.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <BookingMark />
+              <span>Host on Booking.com</span>
+              <ExternalLink size={14} aria-hidden="true" />
+            </a>
+          </div>
         </div>
         <div className="listings-header-actions">
           <button className="btn-create-listing" onClick={() => navigate('/dashboard/listings/new')}>

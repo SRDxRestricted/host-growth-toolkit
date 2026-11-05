@@ -18,6 +18,53 @@
   gap: var(--sp-3);
 }
 
+.listing-platform-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.listing-platform-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.listing-platform-link:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.platform-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.platform-mark img {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.listing-platform-link svg:last-child {
+  margin-left: 2px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .btn-create-listing {
   display: inline-flex;
   align-items: center;
@@ -69,6 +116,11 @@
 @media (max-width: 768px) {
   .health-dashboard {
     grid-template-columns: 1fr;
+  }
+
+  .listings-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

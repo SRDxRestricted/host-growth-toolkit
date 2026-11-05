@@ -252,6 +252,9 @@ export default function CalendarPage() {
   // record replaces it, so the total responds to each date the host blocks.
   const confirmedStayCount = monthBookings.length + blockedNights;
   const hasNoProperties = !propertiesLoading && properties.length === 0;
+  const conflictDateRange = activeConflict
+    ? `${activeConflict.start}–${activeConflict.end}`
+    : '';
 
   return (
     <ErrorBoundary fallbackTitle="Availability calendar is temporarily unavailable">
@@ -267,7 +270,7 @@ export default function CalendarPage() {
             <div>
               <div className="conflict-title">⚠️ Double-Booking Conflict Detected</div>
               <div className="conflict-subtitle">
-                Overlapping dates on <strong>Sep 21–23, 2026</strong> between 
+                Overlapping dates on <strong>{conflictDateRange}</strong> between
                 <strong>{activeConflict.b1?.guestName || activeConflict.b1?.summary || 'Reservation 1'}</strong> and <strong>{activeConflict.b2?.guestName || activeConflict.b2?.summary || 'Reservation 2'}</strong>.
               </div>
             </div>
@@ -455,7 +458,7 @@ export default function CalendarPage() {
           </div>
           </div>
 
-          <footer className="calendar-summary" aria-label="September calendar summary">
+          <footer className="calendar-summary" aria-label={`${currentMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })} calendar summary`}>
             <div className="calendar-summary-item">
               <span>Projected revenue</span>
               <strong>£{totalProjectedRevenue.toLocaleString('en-GB')}</strong>

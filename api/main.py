@@ -891,13 +891,44 @@ class CalendarImportRequest(BaseModel):
 
 
 def calendar_records_for(property_id: str) -> List[Dict[str, Any]]:
-    """Records sent to channel calendars: confirmed stays plus external holds."""
+    """Records shown in HostIt and sent to channel calendars."""
     confirmed = [
         booking for booking in LIVE_BOOKINGS
         if booking.get("propertyId") == property_id and booking.get("status") == "confirmed"
     ]
     imported = calendar_blocks.search(Query().propertyId == property_id)
-    return [*confirmed, *imported]
+    # Explicit preview reservations make the calendar and iCal export
+    # demonstrable before real booking-channel data is connected. They are
+    # labelled as demo data everywhere they appear.
+    demo_reservations = [
+        {
+            "id": f"demo_november_1_{property_id}",
+            "propertyId": property_id,
+            "checkIn": "2026-11-10",
+            "checkOut": "2026-11-13",
+            "status": "confirmed",
+            "source": "demo",
+            "guestName": "HostIt demo reservation",
+            "summary": "HostIt demo reservation",
+            "nights": 3,
+            "guestCount": 2,
+            "totalPrice": 0,
+        },
+        {
+            "id": f"demo_november_2_{property_id}",
+            "propertyId": property_id,
+            "checkIn": "2026-11-20",
+            "checkOut": "2026-11-23",
+            "status": "confirmed",
+            "source": "demo",
+            "guestName": "HostIt demo reservation",
+            "summary": "HostIt demo reservation",
+            "nights": 3,
+            "guestCount": 3,
+            "totalPrice": 0,
+        },
+    ]
+    return [*confirmed, *imported, *demo_reservations]
 
 
 @app.get("/api/properties/{property_id}/calendar-sync")
@@ -947,7 +978,10 @@ def export_property_calendar(property_id: str = "demo_001", token: Optional[str]
         event.add("dtstamp", datetime.now(timezone.utc))
         event.add("dtstart", check_in)
         event.add("dtend", check_out)
-        event.add("summary", "Reserved" if booking.get("status") == "confirmed" else "Unavailable")
+        if booking.get("source") == "demo":
+            event.add("summary", "HostIt demo reservation")
+        else:
+            event.add("summary", "Reserved" if booking.get("status") == "confirmed" else "Unavailable")
         event.add("transp", "OPAQUE")
         calendar.add_component(event)
 

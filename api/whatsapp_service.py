@@ -252,6 +252,18 @@ def get_property_competitors(property_features: Dict[str, Any], limit: int = 3) 
     return result.get("competitors", [])[:3]
 
 
+def get_property_calendar_blocks(property_id: str) -> List[Dict[str, Any]]:
+    """Return blocks for an already-authorised host property.
+
+    The action layer establishes ownership through ``get_host_properties``
+    before calling this helper. Reusing the existing calendar record function
+    keeps confirmed stays and imported iCal holds in one source of truth.
+    """
+    import main as backend_main
+
+    return list(backend_main.calendar_records_for(str(property_id)))
+
+
 # ---------------------------------------------------------------------------
 # Auto-Listing Generation Wrapper
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ Tests:
 import copy
 import os
 import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Any
 from types import SimpleNamespace
@@ -308,6 +309,68 @@ def test_whatsapp_returns_three_competitor_prices_per_property(monkeypatch):
     assert "Camden Flat" in reply
     assert reply.count("£") == 3
     assert "Camden" in reply
+
+
+def test_whatsapp_returns_date_specific_prices_for_each_host_property(monkeypatch):
+    user = {"email": "host@example.com", "first_name": "Host"}
+    properties = [{"id": "prop_a", "name": "Camden Flat"}, {"id": "prop_b", "name": "Soho Studio"}]
+    target = datetime.now(timezone.utc).date() + timedelta(days=10)
+    monkeypatch.setattr("whatsapp_actions.get_host_properties", lambda _user: properties)
+    monkeypatch.setattr(
+        "whatsapp_actions.calculate_property_price",
+        lambda prop, date: SimpleNamespace(
+            recommended_price=175 if prop["id"] == "prop_a" else 215,
+            price_range=(150, 230), demand_level="high",
+        ),
+    )
+
+    reply = action_handler.process_message(user, "+447123456789", f"price for {target.isoformat()}")
+
+    assert "Recommended prices for" in reply
+    assert "Camden Flat" in reply and "Soho Studio" in reply
+    assert "£175" in reply and "£215" in reply
+
+
+def test_whatsapp_rejects_past_date_price_request():
+    user = {"email": "host@example.com", "first_name": "Host"}
+    reply = action_handler.process_message(user, "+447123456789", "price for 2020-01-01")
+    assert "future date" in reply
+
+
+def test_whatsapp_reports_availability_only_for_host_properties(monkeypatch):
+    user = {"email": "host@example.com", "first_name": "Host"}
+    properties = [{"id": "prop_a", "name": "Camden Flat"}, {"id": "prop_b", "name": "Soho Studio"}]
+    target = datetime.now(timezone.utc).date() + timedelta(days=12)
+    monkeypatch.setattr("whatsapp_actions.get_host_properties", lambda _user: properties)
+    monkeypatch.setattr(
+        "whatsapp_actions.get_property_calendar_blocks",
+        lambda property_id: ([{"checkIn": target.isoformat(), "checkOut": (target + timedelta(days=2)).isoformat()}]
+                             if property_id == "prop_a" else [{"checkIn": "invalid", "checkOut": "invalid"}]),
+    )
+
+    reply = action_handler.process_message(user, "+447123456789", f"availability {target.isoformat()}")
+
+    assert "Camden Flat" in reply and "Soho Studio" in reply
+    assert "⛔ Unavailable" in reply
+    assert "✅ Available" in reply
+
+
+def test_whatsapp_returns_portfolio_summary(monkeypatch):
+    user = {"email": "host@example.com", "first_name": "Host"}
+    monkeypatch.setattr(
+        "whatsapp_actions.get_host_properties",
+        lambda _user: [{
+            "id": "prop_a", "name": "Camden Flat", "location": "Camden",
+            "property_type": "Apartment", "bedrooms": 2, "accommodates": 4,
+            "photos": ["one.jpg", "two.jpg"],
+        }],
+    )
+
+    reply = action_handler.process_message(user, "+447123456789", "my listings")
+
+    assert "Your listings" in reply
+    assert "Camden Flat" in reply
+    assert "Sleeps 4" in reply
 
 
 # ---------------------------------------------------------------------------

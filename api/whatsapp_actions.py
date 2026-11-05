@@ -37,6 +37,7 @@ from whatsapp_service import (
     generate_listing_copy,
     get_host_properties,
     get_property_competitors,
+    get_property_calendar_blocks,
     ValidationError,
     PricingCalculationError,
     ListingSaveError,
@@ -116,10 +117,27 @@ class WhatsAppActionHandler:
             if session.status != "IDLE":
                 session_manager.reset_session(phone, user)
             return self._reply_tomorrow_prices(user)
+        requested_price_date = self._extract_iso_price_date(text)
+        if requested_price_date:
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
+            return self._reply_prices_for_date(user, requested_price_date)
         if self._is_competitor_price_request(lower):
             if session.status != "IDLE":
                 session_manager.reset_session(phone, user)
             return self._reply_competitor_prices(user)
+        if self._is_availability_request(lower):
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
+            return self._reply_availability(user, self._extract_iso_date(text))
+        if self._is_portfolio_request(lower):
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
+            return self._reply_portfolio_summary(user)
+        if self._is_help_request(lower):
+            if session.status != "IDLE":
+                session_manager.reset_session(phone, user)
+            return self._reply_help()
         if self._is_unsupported_guest_request(lower):
             return self._reply_unsupported("guest_request")
 
@@ -160,6 +178,38 @@ class WhatsAppActionHandler:
     @staticmethod
     def _is_tomorrow_price_request(text: str) -> bool:
         return "tomorrow" in text and any(word in text for word in ("price", "pricing", "rate", "rates"))
+
+    @staticmethod
+    def _is_help_request(text: str) -> bool:
+        return text.strip() in {"help", "menu", "commands", "what can you do"}
+
+    @staticmethod
+    def _is_availability_request(text: str) -> bool:
+        return any(phrase in text for phrase in (
+            "availability", "available nights", "available dates", "calendar status",
+        ))
+
+    @staticmethod
+    def _is_portfolio_request(text: str) -> bool:
+        return any(phrase in text for phrase in (
+            "my listings", "my properties", "property summary", "portfolio summary", "my portfolio",
+        ))
+
+    @staticmethod
+    def _extract_iso_date(text: str):
+        match = re.search(r"\b(\d{4}-\d{2}-\d{2})\b", text)
+        if not match:
+            return None
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+    @classmethod
+    def _extract_iso_price_date(cls, text: str):
+        if not any(word in text.lower() for word in ("price", "pricing", "rate", "rates")):
+            return None
+        return cls._extract_iso_date(text)
 
     @staticmethod
     def _is_competitor_price_request(text: str) -> bool:
@@ -206,6 +256,33 @@ class WhatsAppActionHandler:
                 lines.extend(["", f"🏠 *{self._property_name(property_features)}*", "⚠️ Price is temporarily unavailable."])
         return "\n".join(lines)
 
+    def _reply_prices_for_date(self, user: Dict[str, Any], target_date) -> str:
+        today = datetime.now(timezone.utc).date()
+        if target_date < today:
+            return "Please request a future date in YYYY-MM-DD format (for example, *price for 2026-11-12*)."
+        if target_date > today + timedelta(days=365):
+            return "I can recommend prices up to 365 days ahead. Please choose an earlier date."
+
+        properties = get_host_properties(user)
+        if not properties:
+            return "I couldn't find a property linked to your account yet. Send *LIST* to create one first."
+
+        lines = [f"📅 *Recommended prices for {target_date.strftime('%a, %d %b %Y')}*"]
+        for property_features in properties:
+            try:
+                recommendation = calculate_property_price(property_features, target_date.isoformat())
+                low, high = recommendation.price_range
+                lines.extend([
+                    "",
+                    f"🏠 *{self._property_name(property_features)}*",
+                    f"💷 £{recommendation.recommended_price:.0f} / night (range £{low:.0f}–£{high:.0f})",
+                    f"📈 {recommendation.demand_level.title()} demand",
+                ])
+            except PricingCalculationError:
+                logger.exception("[STAGE: PRICING] Date price failed for %s", property_features.get("id"))
+                lines.extend(["", f"🏠 *{self._property_name(property_features)}*", "⚠️ Price is temporarily unavailable."])
+        return "\n".join(lines)
+
     def _reply_competitor_prices(self, user: Dict[str, Any]) -> str:
         properties = get_host_properties(user)
         if not properties:
@@ -229,6 +306,83 @@ class WhatsAppActionHandler:
                     f"  {details}"
                 )
         return "\n".join(lines)
+
+    def _reply_availability(self, user: Dict[str, Any], requested_date) -> str:
+        properties = get_host_properties(user)
+        if not properties:
+            return "I couldn't find a property linked to your account yet. Send *LIST* to create one first."
+
+        today = datetime.now(timezone.utc).date()
+        if requested_date and requested_date < today:
+            return "Please check availability for today or a future date in YYYY-MM-DD format."
+        start = requested_date or today
+        end = start + timedelta(days=1 if requested_date else 7)
+        label = start.strftime("%a, %d %b %Y") if requested_date else f"the next 7 nights ({start.strftime('%d %b')}–{(end - timedelta(days=1)).strftime('%d %b')})"
+        lines = [f"🗓️ *Availability for {label}*"]
+
+        for property_features in properties:
+            property_id = property_features.get("id")
+            if not property_id:
+                continue
+            unavailable = set()
+            for block in get_property_calendar_blocks(str(property_id)):
+                try:
+                    check_in = datetime.fromisoformat(str(block["checkIn"])).date()
+                    check_out = datetime.fromisoformat(str(block["checkOut"])).date()
+                except (KeyError, TypeError, ValueError):
+                    logger.warning("[STAGE: AVAILABILITY] Ignoring malformed calendar block for %s", property_id)
+                    continue
+                cursor = max(start, check_in)
+                while cursor < min(end, check_out):
+                    unavailable.add(cursor)
+                    cursor += timedelta(days=1)
+
+            total_nights = (end - start).days
+            available_nights = total_nights - len(unavailable)
+            lines.extend(["", f"🏠 *{self._property_name(property_features)}*"])
+            if requested_date:
+                lines.append("✅ Available" if available_nights else "⛔ Unavailable")
+            elif available_nights == total_nights:
+                lines.append(f"✅ Available all {total_nights} nights")
+            else:
+                blocked = ", ".join(day.strftime("%d %b") for day in sorted(unavailable))
+                lines.append(f"⚠️ {available_nights}/{total_nights} nights available · unavailable: {blocked}")
+        return "\n".join(lines)
+
+    def _reply_portfolio_summary(self, user: Dict[str, Any]) -> str:
+        properties = get_host_properties(user)
+        if not properties:
+            return "You don't have a listing linked to this account yet. Send *LIST* to create one first."
+
+        lines = [f"🏘️ *Your listings* ({len(properties)})"]
+        for property_features in properties:
+            location = property_features.get("location") or property_features.get("host_neighbourhood") or "Location not set"
+            property_type = property_features.get("property_type") or "Property"
+            bedrooms = property_features.get("bedrooms", "–")
+            accommodates = property_features.get("accommodates", property_features.get("capacity_guests", "–"))
+            photos = len(property_features.get("photos") or [])
+            lines.extend([
+                "",
+                f"🏠 *{self._property_name(property_features)}*",
+                f"📍 {location} · {property_type}",
+                f"🛏️ {bedrooms} bedroom(s) · 👥 Sleeps {accommodates} · 📸 {photos} photo(s)",
+            ])
+        lines.append("\nAsk for *prices for tomorrow*, *price for YYYY-MM-DD*, *competitor prices*, or *availability*.")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _reply_help() -> str:
+        return (
+            "👋 *host It host assistant*\n\n"
+            "• *LIST* — create a new listing\n"
+            "• *prices for tomorrow* — recommended rate for every property\n"
+            "• *price for YYYY-MM-DD* — rates for a future date\n"
+            "• *competitor prices* — 3 nearby comparable listings per property\n"
+            "• *availability* — next 7 nights across your listings\n"
+            "• *availability YYYY-MM-DD* — check one date\n"
+            "• *my listings* — portfolio summary\n\n"
+            "Reply *RESET* to cancel an unfinished listing flow."
+        )
 
     # -----------------------------------------------------------------------
     # Step Question Prompts

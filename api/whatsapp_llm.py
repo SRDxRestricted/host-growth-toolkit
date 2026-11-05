@@ -40,7 +40,7 @@ from whatsapp_service import LLMParsingError
 # ---------------------------------------------------------------------------
 class LLMStructuredOutput(BaseModel):
     intent: str = Field(
-        description="Detected intent: 'create_listing', 'tomorrow_price', 'competitor_prices', 'provide_field', 'confirm', 'cancel', 'reset', 'unsupported', or 'greeting'"
+        description="Detected intent: 'create_listing', 'tomorrow_price', 'competitor_prices', 'date_price', 'availability', 'portfolio_summary', 'provide_field', 'confirm', 'cancel', 'reset', 'unsupported', or 'greeting'"
     )
     field: Optional[str] = Field(
         default=None,
@@ -79,16 +79,19 @@ LLM_PARSER_SYSTEM_PROMPT = """You are the AI parser for host It, a property-list
 Your job is to analyze the user's message in the context of creating a property listing.
 
 IMPORTANT SCOPE:
-- host It WhatsApp supports creating new property listings, tomorrow-price requests, and local competitor-price requests.
+- host It WhatsApp supports creating new property listings, price requests, local competitor-price requests, host availability checks, and host listing summaries.
 - When a user says "list", "start", "I want to list", or wants to add/rent a property, ALWAYS set intent="create_listing".
 - Set intent="tomorrow_price" for requests such as "prices for tomorrow" or "tomorrow's rate".
 - Set intent="competitor_prices" for requests to see competitor, nearby, local, or surrounding-area prices.
-- Only set intent="unsupported" (with unsupported_type="booking" | "pricing_alone" | "dashboard") for guest bookings, calendar availability, or unsupported dashboard controls.
+- Set intent="date_price" for a host price request with a specific future date in YYYY-MM-DD format.
+- Set intent="availability" for a host asking about their own property availability.
+- Set intent="portfolio_summary" for a host asking to see their listings or portfolio.
+- Only set intent="unsupported" (with unsupported_type="booking" | "pricing_alone" | "dashboard") for guest bookings or unsupported dashboard controls.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object with these exact keys:
 {{
-  "intent": "create_listing" | "tomorrow_price" | "competitor_prices" | "provide_field" | "confirm" | "cancel" | "reset" | "unsupported" | "greeting",
+  "intent": "create_listing" | "tomorrow_price" | "competitor_prices" | "date_price" | "availability" | "portfolio_summary" | "provide_field" | "confirm" | "cancel" | "reset" | "unsupported" | "greeting",
   "field": "property_type" | "location" | "accommodates" | "bedrooms" | "bathrooms" | "amenities" | null,
   "value": <extracted value or null>,
   "missing_fields": [<list of remaining required fields>],

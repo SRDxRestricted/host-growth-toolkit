@@ -396,6 +396,15 @@ def test_ical_export_contains_live_blocks_not_a_stale_mock_event(client, monkeyp
     assert "Current Month Flat - HostIt" in response.text
 
 
+def test_calendar_records_include_labelled_november_preview_reservations():
+    records = backend_main.calendar_records_for("prop_preview_test")
+    demo_records = [record for record in records if record.get("source") == "demo"]
+
+    assert len(demo_records) == 2
+    assert {record["checkIn"] for record in demo_records} == {"2026-11-10", "2026-11-20"}
+    assert all(record["summary"] == "HostIt demo reservation" for record in demo_records)
+
+
 # ---------------------------------------------------------------------------
 # 7. Cancellation & Reset Flow Tests
 # ---------------------------------------------------------------------------

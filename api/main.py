@@ -928,28 +928,25 @@ def export_property_calendar(property_id: str = "demo_001", token: Optional[str]
     calendar.add("version", "2.0")
     calendar.add("calscale", "GREGORIAN")
     calendar.add("method", "PUBLISH")
-    calendar.add("x-wr-calname", "Beach House - HostIt")
-
-    # Hardcoded mock test event so Google Calendar immediately displays a visible booking
-    mock_event = Event()
-    mock_event.add("uid", "mock-test-booking-202609@hostit")
-    mock_event.add("dtstamp", datetime(2026, 9, 21, 12, 0, 0, tzinfo=timezone.utc))
-    mock_event.add("dtstart", datetime(2026, 9, 25, 14, 0, 0, tzinfo=timezone.utc))
-    mock_event.add("dtend", datetime(2026, 9, 28, 10, 0, 0, tzinfo=timezone.utc))
-    mock_event.add("summary", "Booked - Beach House (Test Booking)")
-    mock_event.add("description", "Guest: Sarah Jenkins | Channel: Airbnb (Simulated)")
-    mock_event.add("status", "CONFIRMED")
-    mock_event.add("transp", "OPAQUE")
-    calendar.add_component(mock_event)
+    property_doc = listing_by_id(property_id) or DEMO_PROPERTIES.get(property_id) or {}
+    property_name = str(property_doc.get("name") or "HostIt availability")
+    calendar.add("x-wr-calname", f"{property_name} - HostIt")
 
     for booking in calendar_records_for(property_id):
         if not booking.get("checkIn") or not booking.get("checkOut"):
             continue
+        try:
+            check_in = datetime.fromisoformat(str(booking["checkIn"])).date()
+            check_out = datetime.fromisoformat(str(booking["checkOut"])).date()
+        except (TypeError, ValueError):
+            continue
+        if check_out <= check_in:
+            continue
         event = Event()
         event.add("uid", f"{booking.get('id', uuid.uuid4().hex)}@hostit")
         event.add("dtstamp", datetime.now(timezone.utc))
-        event.add("dtstart", datetime.fromisoformat(booking["checkIn"]).date())
-        event.add("dtend", datetime.fromisoformat(booking["checkOut"]).date())
+        event.add("dtstart", check_in)
+        event.add("dtend", check_out)
         event.add("summary", "Reserved" if booking.get("status") == "confirmed" else "Unavailable")
         event.add("transp", "OPAQUE")
         calendar.add_component(event)

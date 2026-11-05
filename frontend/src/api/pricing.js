@@ -125,7 +125,16 @@ export async function getBookings(propertyId) {
     if (response.ok) {
       const data = await response.json();
       const liveBookings = Array.isArray(data.bookings) ? data.bookings : [];
-      return propertyId ? liveBookings.filter(booking => booking.propertyId === propertyId) : liveBookings;
+      // The property-specific backend endpoint already scopes its response.
+      // Normalize legacy `property_id` records so imported iCal blocks are not
+      // discarded by the Calendar page's property filter.
+      const normalizedBookings = liveBookings.map((booking) => ({
+        ...booking,
+        propertyId: booking.propertyId || booking.property_id || propertyId,
+      }));
+      return propertyId
+        ? normalizedBookings.filter(booking => booking.propertyId === propertyId)
+        : normalizedBookings;
     }
   } catch (err) {
     console.warn('Backend bookings unavailable', err);

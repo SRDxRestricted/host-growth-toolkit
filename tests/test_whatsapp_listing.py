@@ -373,6 +373,29 @@ def test_whatsapp_returns_portfolio_summary(monkeypatch):
     assert "Sleeps 4" in reply
 
 
+def test_ical_export_contains_live_blocks_not_a_stale_mock_event(client, monkeypatch):
+    """A channel receives the property's real availability, including current dates."""
+    target = datetime.now(timezone.utc).date() + timedelta(days=4)
+    monkeypatch.setattr(
+        backend_main,
+        "calendar_records_for",
+        lambda _property_id: [{
+            "id": "ical_current_block",
+            "checkIn": target.isoformat(),
+            "checkOut": (target + timedelta(days=3)).isoformat(),
+            "status": "blocked",
+        }],
+    )
+    monkeypatch.setattr(backend_main, "listing_by_id", lambda _property_id: {"name": "Current Month Flat"})
+
+    response = client.get("/api/properties/prop_ical_test/ical")
+
+    assert response.status_code == 200
+    assert target.strftime("%Y%m%d") in response.text
+    assert "mock-test-booking-202609" not in response.text
+    assert "Current Month Flat - HostIt" in response.text
+
+
 # ---------------------------------------------------------------------------
 # 7. Cancellation & Reset Flow Tests
 # ---------------------------------------------------------------------------

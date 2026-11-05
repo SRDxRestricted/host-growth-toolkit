@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import DashboardFooter from './DashboardFooter'
 import ErrorBoundary from '../common/ErrorBoundary'
 import './Layout.css'
 
@@ -25,6 +26,7 @@ function DashboardLayout() {
           <ErrorBoundary fallbackTitle="This page encountered an issue">
             <Outlet />
           </ErrorBoundary>
+          <DashboardFooter />
         </main>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet';
-import { Map, MapPin, X } from 'lucide-react';
+import { Bath, BedDouble, Map, MapPin, Star, Users } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
 import { fetchCompetitorPrices, fetchPricingRecommendation, getProperties } from '../api/pricing';
 import { getListings } from '../api/listings';
@@ -29,6 +29,48 @@ function listingHealth(listing) {
     listing.full_description,
   ];
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+
+function formatCount(value) {
+  const number = Number(value || 0);
+  return Number.isInteger(number) ? number : number.toFixed(1);
+}
+
+function CompetitorPopup({ competitor }) {
+  const priceDifference = Number(competitor.price) - Number(competitor.hostRate || 0);
+  const hasHostRate = Number.isFinite(Number(competitor.hostRate)) && Number(competitor.hostRate) > 0;
+
+  return (
+    <div className="map-comparable-popup">
+      <div className="map-popup-heading">
+        <div>
+          <p className="map-popup-kicker">Comparable listing</p>
+          <strong>{competitor.name}</strong>
+          <span className="map-popup-location"><MapPin size={13} />{competitor.location}</span>
+        </div>
+        <div className="map-popup-price">£{Math.round(competitor.price)}<small>/ night</small></div>
+      </div>
+
+      <p className="map-popup-type">{competitor.property_type} · {competitor.room_type}</p>
+      <div className="map-popup-specs">
+        <span><BedDouble size={14} />{formatCount(competitor.bedrooms)} bd · {formatCount(competitor.beds)} beds</span>
+        <span><Bath size={14} />{formatCount(competitor.bathrooms)} bath</span>
+        <span><Users size={14} />Sleeps {competitor.accommodates}</span>
+        <span><Star size={14} />{competitor.rating} ({competitor.reviews_count || 0})</span>
+      </div>
+
+      {competitor.amenities?.length > 0 && (
+        <div className="map-popup-amenities">
+          {competitor.amenities.slice(0, 4).map((amenity) => <span key={amenity}>{amenity}</span>)}
+        </div>
+      )}
+
+      <div className="map-popup-footer">
+        <span>{competitor.dist_km ? `${competitor.dist_km} km away` : 'Nearby'}</span>
+        {hasHostRate && <span>{priceDifference === 0 ? 'Matches your rate' : `${priceDifference > 0 ? '+' : '−'}£${Math.abs(priceDifference).toFixed(0)} vs ${competitor.hostPropertyName}`}</span>}
+      </div>
+    </div>
+  );
 }
 
 export default function PortfolioMapPage() {
@@ -85,7 +127,12 @@ export default function PortfolioMapPage() {
   const competitorMarkers = mappableProperties.flatMap((property) =>
     (mapData[property.id]?.competitors || [])
       .filter(hasCoordinates)
-      .map((competitor) => ({ ...competitor, propertyId: property.id })),
+      .map((competitor) => ({
+        ...competitor,
+        propertyId: property.id,
+        hostPropertyName: property.name,
+        hostRate: mapData[property.id]?.pricing?.recommendedPrice,
+      })),
   );
 
   const unlockMap = () => {
@@ -145,7 +192,7 @@ export default function PortfolioMapPage() {
             />
             {competitorMarkers.map((competitor, index) => (
               <CircleMarker key={`${competitor.propertyId}-${competitor.id}-${index}`} center={[competitor.latitude, competitor.longitude]} radius={6} pathOptions={{ color: '#a8a29e', fillColor: '#57534e', fillOpacity: 0.9, weight: 1 }}>
-                <Popup><strong>{competitor.name}</strong><br />£{Math.round(competitor.price)} / night<br />{competitor.location}</Popup>
+                <Popup minWidth={300} maxWidth={340}><CompetitorPopup competitor={competitor} /></Popup>
               </CircleMarker>
             ))}
             {propertyMarkers.map((property) => (

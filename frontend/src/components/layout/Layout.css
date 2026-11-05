@@ -53,6 +53,8 @@
   font-size: var(--text-2xl);
   font-weight: 600;
   letter-spacing: -0.02em;
+  color: var(--white);
+  text-decoration: none;
 }
 
 .brand-dot {
@@ -106,6 +108,32 @@
 
 .host-profile:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+.account-actions {
+  display: grid;
+  gap: var(--sp-1);
+  margin-top: var(--sp-3);
+}
+
+.account-actions button {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  color: var(--gray-400);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+.account-actions button:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .avatar {
@@ -219,6 +247,35 @@
   overflow-y: auto;
   position: relative;
   z-index: 1;
+}
+
+.dashboard-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-5) var(--sp-8);
+  color: rgba(255, 255, 255, 0.58);
+  font-size: var(--text-xs);
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-footer nav {
+  display: flex;
+  gap: var(--sp-4);
+}
+
+.dashboard-footer a:hover {
+  color: var(--white);
+}
+
+@media (max-width: 640px) {
+  .dashboard-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: var(--sp-5);
+  }
 }
 
 /* ─── WhatsApp Button & Popover ─────────────────────────────── */

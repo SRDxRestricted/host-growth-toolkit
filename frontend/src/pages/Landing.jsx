@@ -141,6 +141,7 @@ const Landing = () => {
           <div className="footer-links">
             <Link to="/privacy">Privacy</Link>
             <Link to="/terms">Terms</Link>
+            <Link to="/cookies">Cookies</Link>
           </div>
         </div>
       </footer>

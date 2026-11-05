@@ -243,7 +243,13 @@ export async function fetchPricingRecommendation(propertyId, date) {
         medianPrice: data.comparables.median_price != null ? Math.round(data.comparables.median_price) : null,
         p75Price: data.comparables.p75_price != null ? Math.round(data.comparables.p75_price) : null,
       } : null,
-      factors: data.factors
+      factors: Array.isArray(data.price_components) && data.price_components.length > 0
+        ? data.price_components.map(component => ({
+          ...component,
+          amount: Number(component.amount || 0),
+          impact: component.impact || 'neutral',
+        }))
+        : data.factors
         .filter(f => !f.toLowerCase().includes('fusion v2'))
         .map(f => {
           let label = f.split(':')[0];
@@ -291,7 +297,8 @@ export async function fetchPricingRecommendation(propertyId, date) {
             label,
             detail,
             impact,
-            pct
+            pct,
+            amount: null,
           };
         }),
       seasonality: data.seasonality_context,

@@ -326,6 +326,16 @@
 .factor-pct.positive { color: #10b981; }
 .factor-pct.negative { color: #ef4444; }
 
+.factor-amount {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.factor-amount.positive { color: #10b981; }
+.factor-amount.negative { color: #ef4444; }
+.factor-amount.neutral { color: rgba(255, 255, 255, 0.8); }
+
 .factor-detail {
   font-size: var(--text-sm);
   color: rgba(255, 255, 255, 0.8);

@@ -107,6 +107,7 @@ class PricingRecommendation:
     demand_level: str  # "low" / "medium" / "high"
     adjustment_pct: float  # total % adjustment applied
     factors: List[str]  # human-readable explanation bullets
+    price_components: List[Dict[str, Any]] = field(default_factory=list)
     comparables: Optional[Dict[str, Any]] = None  # comparable listings statistics
 
     comparable_median: Optional[float] = None
@@ -142,6 +143,7 @@ class PricingRecommendation:
             "event_adjustment_pct": round(self.event_adjustment_pct, 2),
             "seasonality_context": self.seasonality_context,
             "factors": self.factors,
+            "price_components": self.price_components,
         }
         if self.comparables:
             d["comparables"] = self.comparables
@@ -311,7 +313,7 @@ class PricingEngine:
         comps = get_comparables(property_features, target_id)
 
         # 5. Compute adjustment with fusion
-        rec = self._apply_adjustment(base_price, date_info, target_date, comps)
+        rec = self._apply_adjustment(base_price, date_info, target_date, comps, property_features)
         rec.comparables = comps
         
         return rec
@@ -344,7 +346,7 @@ class PricingEngine:
         for i in range(days):
             target_d = curr_date + timedelta(days=i)
             date_info = self._lookup_date(target_d)
-            rec = self._apply_adjustment(base_price, date_info, target_d, comps)
+            rec = self._apply_adjustment(base_price, date_info, target_d, comps, property_features)
 
             calendar_results.append({
                 "date": target_d.isoformat(),
@@ -397,6 +399,7 @@ class PricingEngine:
         date_info: Optional[Any],
         target_date: date,
         comps: Optional[Dict[str, Any]] = None,
+        property_features: Optional[Dict[str, Any]] = None,
     ) -> PricingRecommendation:
         """
         Compute the heuristic price adjustment (Pricing Fusion V2).
@@ -412,6 +415,25 @@ class PricingEngine:
         """
         cfg = self.config
         factors: List[str] = []
+        property_features = property_features or {}
+        property_type = property_features.get("property_type") or "property"
+        location = (
+            property_features.get("host_neighbourhood")
+            or property_features.get("location")
+            or "the local area"
+        )
+        price_components: List[Dict[str, Any]] = [
+            {
+                "key": "base",
+                "label": "Base property value",
+                "amount": round(base_price, 2),
+                "impact": "neutral",
+                "description": (
+                    f"Starting point for this {property_type} in {location}, based on its "
+                    "features and typical local pricing."
+                ),
+            }
+        ]
 
         factors.append(
             f"Base price from V1.2 Random Forest model: ${base_price:.2f}"
@@ -465,10 +487,27 @@ class PricingEngine:
             comp_influence = float(np.clip(comp_influence, -COMP_MAX_INFLUENCE, COMP_MAX_INFLUENCE))
             comp_explanation += f" -> comp influence: {comp_influence*100:+.1f}%"
             factors.append(comp_explanation)
+            price_components.append({
+                "key": "competition",
+                "label": "Local competition",
+                "amount": round(base_price * comp_influence, 2),
+                "impact": "positive" if comp_influence > 0 else "negative" if comp_influence < 0 else "neutral",
+                "description": (
+                    f"{comp_count} similar listings around {location} have a median of "
+                    f"£{float(comp_median):.0f}, so the recommendation is adjusted toward that market."
+                ),
+            })
         else:
             factors.append(
                 f"Comp count ({comp_count}) < 5 -> no comparable influence applied"
             )
+            price_components.append({
+                "key": "competition",
+                "label": "Local competition",
+                "amount": 0.0,
+                "impact": "neutral",
+                "description": "There are not yet enough close, similar listings to apply a reliable local-price adjustment.",
+            })
 
         # ---- 2. Pressure influence (dead-zone gated) ----
         pressure_influence = 0.0
@@ -493,6 +532,16 @@ class PricingEngine:
                 f"(25-75) -> no pressure shift"
             )
         factors.append(pressure_explanation)
+        price_components.append({
+            "key": "demand",
+            "label": "Market demand",
+            "amount": round(base_price * pressure_influence, 2),
+            "impact": "positive" if pressure_influence > 0 else "negative" if pressure_influence < 0 else "neutral",
+            "description": (
+                f"Local availability for this date produces a market-pressure score of {mps:.0f}/100. "
+                + ("Strong demand increases the rate." if pressure_influence > 0 else "Lower availability pressure reduces the rate." if pressure_influence < 0 else "Demand is in the neutral range, so no price shift is applied.")
+            ),
+        })
 
         # ---- 3. Weekend premium ----
         weekend_adj = 0.0
@@ -501,6 +550,13 @@ class PricingEngine:
             factors.append(
                 f"Weekend premium: +{cfg.weekend_premium*100:.0f}%"
             )
+            price_components.append({
+                "key": "weekend",
+                "label": "Weekend premium",
+                "amount": round(base_price * weekend_adj, 2),
+                "impact": "positive",
+                "description": "Weekend stays typically attract stronger demand, so a modest premium is included.",
+            })
 
         # ---- 4. Event premium (from London event calendar) ----
         from pricing.events import get_event_context
@@ -514,6 +570,15 @@ class PricingEngine:
                     f"Event boost ({event_ctx['event_name']}): "
                     f"+{event_adj*100:.0f}%"
                 )
+                price_components.append({
+                    "key": "event",
+                    "label": event_ctx["event_name"] or "Local event",
+                    "amount": round(base_price * event_adj, 2),
+                    "impact": "positive",
+                    "description": (
+                        f"{event_ctx['event_name']} is expected to increase demand in London on this date."
+                    ),
+                })
 
         # ---- 5. Total adjustment (capped at max_adjustment) ----
         raw_total = comp_influence + pressure_influence + weekend_adj + event_adj
@@ -566,6 +631,7 @@ class PricingEngine:
             event_adjustment_pct=round(event_adj * 100.0, 2),
             seasonality_context=event_ctx["seasonality_context"],
             factors=factors,
+            price_components=price_components,
         )
 
 

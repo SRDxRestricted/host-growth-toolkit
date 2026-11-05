@@ -11,6 +11,7 @@ import ListingDetailPage from './pages/ListingDetailPage'
 import BookingsPage from './pages/BookingsPage'
 import CalendarPage from './pages/CalendarPage'
 import PortfolioMapPage from './pages/PortfolioMapPage'
+import LegalPage from './pages/LegalPage'
 
 function App() {
   return (
@@ -19,6 +20,9 @@ function App() {
       <Route path="/login" element={<Auth mode="login" />} />
       <Route path="/signup" element={<Auth mode="signup" />} />
       <Route path="/setup" element={<PropertySetup />} />
+      <Route path="/privacy" element={<LegalPage />} />
+      <Route path="/terms" element={<LegalPage />} />
+      <Route path="/cookies" element={<LegalPage />} />
       
       <Route path="/dashboard" element={<DashboardLayout />}>
         <Route index element={<Dashboard />} />
